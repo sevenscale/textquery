@@ -37,7 +37,7 @@ grammar TextQueryGrammar
       end
 
       def accept(&block)
-        block.call(:and, op1.accept(&block), op2.accept(&block))
+        block.call(:implicit, op1.accept(&block), op2.accept(&block))
       end
     }
     /
