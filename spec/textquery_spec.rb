@@ -32,153 +32,6 @@ describe TextQuery do
     parse("NOTtext").eval("string of stuff").should be_false
   end
 
-  it "should accept logical AND" do
-    parse("a AND b").eval("c").should be_false
-    parse("a AND b").eval("a").should be_false
-    parse("a AND b").eval("b").should be_false
-    parse("a AND b AND c").eval("a b").should be_false
-    parse("ORVILLE ANDREWS").eval("ORVILLE DREWS").should be_false
-    parse("ORVILLE ANDREWS").eval("ANDREWS ORVILLE").should be_true
-
-    parse("a AND b").eval("a b").should be_true
-    parse("a AND b").eval("a c b").should be_true
-    parse("a AND b AND c").eval("a c b").should be_true
-  end
-
-  it "should accept logical OR" do
-    parse("a OR b").eval("c").should be_false
-    parse("a OR b").eval("a").should be_true
-    parse("a OR b").eval("b").should be_true
-    parse("a OR b OR c").eval("d").should be_false
-    parse("ANDREWS ORVILLE").eval("VILLE").should be_false
-
-    parse("a OR b").eval("a b").should be_true
-    parse("a OR b").eval("a c b").should be_true
-    parse("a OR b OR c").eval("a c b").should be_true
-  end
-
-  it "should give precedence to AND" do
-    # (a AND b) OR c == a AND b OR c
-    parse("a AND b OR c").eval("a b c").should be_true
-    parse("a AND b OR c").eval("a b").should be_true
-    parse("a AND b OR c").eval("a c").should be_true
-
-    parse("a AND b OR c").eval("b c").should be_true
-    parse("a AND b OR c").eval("c").should be_true
-    parse("a AND b OR c").eval("b").should be_false
-  end
-
-  it "should accept logical NOT" do
-    %w[- NOT].each do |operator|
-      parse("#{operator} a").eval("a").should be_false
-      parse("#{operator} #{operator} a").eval("a").should be_true
-
-      parse("#{operator} a OR a").eval("a").should be_true
-      parse("a OR #{operator} a").eval("a").should be_true
-
-      parse("b AND #{operator} a").eval("b").should be_true
-      parse("b AND #{operator} a").eval("a").should be_false
-    end
-  end
-
-  it "should evaluate sub expressions" do
-    parse("(a AND b)").eval("a b").should be_true
-    parse("(a OR b)").eval("a b").should be_true
-    parse("(a AND NOT b)").eval("a b").should be_false
-
-    parse("(a AND b) OR c").eval("a b c").should be_true
-    parse("(a AND b) OR c").eval("a b").should be_true
-    parse("(a AND b) OR c").eval("a c").should be_true
-
-    parse("(a AND b) OR c").eval("c").should be_true
-    parse("a AND (b OR c)").eval("c").should be_false
-
-    # for the win...
-    parse("a AND (b AND (c OR d))").eval("d a b").should be_true
-  end
-
-  it "should not trip up on placement of brackets" do
-    parse("a AND (-b)").eval("a b").should    == parse("a AND -(b)").eval("a b")
-    parse("(-a) AND b").eval("a b").should    == parse("-(a) AND b").eval("a b")
-    parse("-(a) AND -(b)").eval("a b").should == parse("(-a) AND (-b)").eval("a b")
-
-    parse("a OR (-b)").eval("a b").should     == parse("a OR -(b)").eval("a b")
-    parse("(-a) OR b").eval("a b").should     == parse("-(a) OR b").eval("a b")
-    parse("(-a) OR (-b)").eval("a b").should  == parse("-(a) OR -(b)").eval("a b")
-
-    parse("a AND (b OR c)").eval("a b c").should be_true
-    parse("a AND (b OR c)").eval("a b").should be_true
-    parse("a AND (b OR c)").eval("a c").should be_true
-
-    parse("(NOT a) OR a").eval("a").should be_true
-    parse("(NOT a) AND (NOT b) AND (NOT c)").eval("b").should be_false
-    parse("a AND (b AND (c OR NOT d))").eval("a b d").should be_false
-    parse("a AND (b AND (c OR NOT d))").eval("a b c").should be_true
-    parse("a AND (b AND (c OR NOT d))").eval("a b e").should be_true
-
-    parse("a AND (b AND NOT (c OR d))").eval("a b").should be_true
-    parse("a AND (b AND NOT (c OR d))").eval("a b c").should be_false
-    parse("a AND (b AND NOT (c OR d))").eval("a b d").should be_false
-
-    parse("-a AND -b AND -c").eval("e").should be_true
-    parse("(-a) AND (-b) AND (-c)").eval("e").should be_true
-    parse("(NOT a) AND (NOT b) AND (NOT c)").eval("e").should be_true
-    parse("NOT a AND NOT b AND NOT c").eval("e").should be_true
-  end
-
-  it "should accept quoted strings" do
-    parse("'some text'").eval("some text").should be_true
-    parse("'some text string'").eval("some text").should be_false
-
-    parse("'some text string'").eval("some text 1 string").should be_false
-    parse("-'some text string'").eval("some text 1 string").should be_true
-
-    parse("a AND -'a b'").eval("a b c").should be_false
-    parse("a AND -'a b'").eval("a c b").should be_true
-
-    parse("(a OR b) AND (-'a b c')").eval("a b c").should be_false
-    parse("(a OR b) AND (-'a b c')").eval("a c b").should be_true
-    parse("(a AND b) AND (-'a b c')").eval("a c b").should be_true
-
-    # shakespeare got nothin' on ruby...
-    parse("'to be' OR NOT 'to be'").eval("to be").should be_true
-    parse('"to be" OR NOT "to be"').eval("to be").should be_true
-  end
-
-  it "should not swallow spaces inside quoted strings" do
-    parse('" some text "').eval("this is some text", :delim => '').should be_false
-    parse('" some text "').eval("this is some text that should match", :delim => '').should be_true
-  end
-
-  it "should accept unbalanced quotes" do
-    parse("awesome").eval("M&M's are awesome").should be_true
-    parse("M&M's").eval("M&M's are awesome").should be_true
-    parse("M&M's AND awesome").eval("M&M's are awesome").should be_true
-    parse("M&M's AND fail").eval("M&M's are awesome").should be_false
-  end
-
-  it "should accept mixed quotes inside the exact match queries" do
-    parse("seattle's best").eval("seattle's best").should be_true
-
-    parse("peets OR \"seattle's best\"").eval("peets").should be_true
-    parse("peets OR \"seattle's best\"").eval("seattle's").should be_false
-
-    parse("\"seattle's best\"").eval("seattle's best coffee").should be_true
-    parse('"seattle\'s best"').eval("seattle's best coffee").should be_true
-  end
-
-  it "should treat spaces as implicit ANDs" do
-    parse("a b").eval("a c b").should be_true
-    parse("b a c").eval("a c b").should be_true
-    parse("b a c").eval("a c").should be_false
-
-    parse("some text AND 'exact match'").eval("some exact match text").should be_true
-    parse("some text AND 'exact match'").eval("some exact text match").should be_false
-
-    parse("some text AND -'exact match'").eval("some exact text match").should be_true
-    parse("some text AND -'exact match'").eval("some exact match").should be_false
-  end
-
   it "should wrap the grammar API" do
     TextQuery.new("'to be' OR NOT 'to_be'").match?("to be").should be_true
     TextQuery.new("-test").match?("some string of text").should be_true
@@ -240,6 +93,157 @@ describe TextQuery do
     TextQuery.new("a AND CD", :ignorecase => false).match?("A b cD").should be_false
   end
 
+  context 'conjunctions' do
+    it "should accept logical AND" do
+      parse("a AND b").eval("c").should be_false
+      parse("a AND b").eval("a").should be_false
+      parse("a AND b").eval("b").should be_false
+      parse("a AND b AND c").eval("a b").should be_false
+      parse("ORVILLE ANDREWS").eval("ORVILLE DREWS").should be_false
+      parse("ORVILLE ANDREWS").eval("ANDREWS ORVILLE").should be_true
+
+      parse("a AND b").eval("a b").should be_true
+      parse("a AND b").eval("a c b").should be_true
+      parse("a AND b AND c").eval("a c b").should be_true
+    end
+
+    it "should accept logical OR" do
+      parse("a OR b").eval("c").should be_false
+      parse("a OR b").eval("a").should be_true
+      parse("a OR b").eval("b").should be_true
+      parse("a OR b OR c").eval("d").should be_false
+      parse("ANDREWS ORVILLE").eval("VILLE").should be_false
+
+      parse("a OR b").eval("a b").should be_true
+      parse("a OR b").eval("a c b").should be_true
+      parse("a OR b OR c").eval("a c b").should be_true
+    end
+
+    it "should give precedence to AND" do
+      # (a AND b) OR c == a AND b OR c
+      parse("a AND b OR c").eval("a b c").should be_true
+      parse("a AND b OR c").eval("a b").should be_true
+      parse("a AND b OR c").eval("a c").should be_true
+
+      parse("a AND b OR c").eval("b c").should be_true
+      parse("a AND b OR c").eval("c").should be_true
+      parse("a AND b OR c").eval("b").should be_false
+    end
+
+    it "should accept logical NOT" do
+      %w[- NOT].each do |operator|
+	parse("#{operator} a").eval("a").should be_false
+	parse("#{operator} #{operator} a").eval("a").should be_true
+
+	parse("#{operator} a OR a").eval("a").should be_true
+	parse("a OR #{operator} a").eval("a").should be_true
+
+	parse("b AND #{operator} a").eval("b").should be_true
+	parse("b AND #{operator} a").eval("a").should be_false
+      end
+    end
+
+    it "should evaluate sub expressions" do
+      parse("(a AND b)").eval("a b").should be_true
+      parse("(a OR b)").eval("a b").should be_true
+      parse("(a AND NOT b)").eval("a b").should be_false
+
+      parse("(a AND b) OR c").eval("a b c").should be_true
+      parse("(a AND b) OR c").eval("a b").should be_true
+      parse("(a AND b) OR c").eval("a c").should be_true
+
+      parse("(a AND b) OR c").eval("c").should be_true
+      parse("a AND (b OR c)").eval("c").should be_false
+
+      # for the win...
+      parse("a AND (b AND (c OR d))").eval("d a b").should be_true
+    end
+
+    it "should treat spaces as implicit ANDs" do
+      parse("a b").eval("a c b").should be_true
+      parse("b a c").eval("a c b").should be_true
+      parse("b a c").eval("a c").should be_false
+
+      parse("some text AND 'exact match'").eval("some exact match text").should be_true
+      parse("some text AND 'exact match'").eval("some exact text match").should be_false
+
+      parse("some text AND -'exact match'").eval("some exact text match").should be_true
+      parse("some text AND -'exact match'").eval("some exact match").should be_false
+    end
+
+    it "should not trip up on placement of brackets" do
+      parse("a AND (-b)").eval("a b").should    == parse("a AND -(b)").eval("a b")
+      parse("(-a) AND b").eval("a b").should    == parse("-(a) AND b").eval("a b")
+      parse("-(a) AND -(b)").eval("a b").should == parse("(-a) AND (-b)").eval("a b")
+
+      parse("a OR (-b)").eval("a b").should     == parse("a OR -(b)").eval("a b")
+      parse("(-a) OR b").eval("a b").should     == parse("-(a) OR b").eval("a b")
+      parse("(-a) OR (-b)").eval("a b").should  == parse("-(a) OR -(b)").eval("a b")
+
+      parse("a AND (b OR c)").eval("a b c").should be_true
+      parse("a AND (b OR c)").eval("a b").should be_true
+      parse("a AND (b OR c)").eval("a c").should be_true
+
+      parse("(NOT a) OR a").eval("a").should be_true
+      parse("(NOT a) AND (NOT b) AND (NOT c)").eval("b").should be_false
+      parse("a AND (b AND (c OR NOT d))").eval("a b d").should be_false
+      parse("a AND (b AND (c OR NOT d))").eval("a b c").should be_true
+      parse("a AND (b AND (c OR NOT d))").eval("a b e").should be_true
+
+      parse("a AND (b AND NOT (c OR d))").eval("a b").should be_true
+      parse("a AND (b AND NOT (c OR d))").eval("a b c").should be_false
+      parse("a AND (b AND NOT (c OR d))").eval("a b d").should be_false
+
+      parse("-a AND -b AND -c").eval("e").should be_true
+      parse("(-a) AND (-b) AND (-c)").eval("e").should be_true
+      parse("(NOT a) AND (NOT b) AND (NOT c)").eval("e").should be_true
+      parse("NOT a AND NOT b AND NOT c").eval("e").should be_true
+    end
+  end
+
+  context 'quoting' do
+    it "should accept quoted strings" do
+      parse("'some text'").eval("some text").should be_true
+      parse("'some text string'").eval("some text").should be_false
+
+      parse("'some text string'").eval("some text 1 string").should be_false
+      parse("-'some text string'").eval("some text 1 string").should be_true
+
+      parse("a AND -'a b'").eval("a b c").should be_false
+      parse("a AND -'a b'").eval("a c b").should be_true
+
+      parse("(a OR b) AND (-'a b c')").eval("a b c").should be_false
+      parse("(a OR b) AND (-'a b c')").eval("a c b").should be_true
+      parse("(a AND b) AND (-'a b c')").eval("a c b").should be_true
+
+      # shakespeare got nothin' on ruby...
+      parse("'to be' OR NOT 'to be'").eval("to be").should be_true
+      parse('"to be" OR NOT "to be"').eval("to be").should be_true
+    end
+
+    it "should not swallow spaces inside quoted strings" do
+      parse('" some text "').eval("this is some text", :delim => '').should be_false
+      parse('" some text "').eval("this is some text that should match", :delim => '').should be_true
+    end
+
+    it "should accept unbalanced quotes" do
+      parse("awesome").eval("M&M's are awesome").should be_true
+      parse("M&M's").eval("M&M's are awesome").should be_true
+      parse("M&M's AND awesome").eval("M&M's are awesome").should be_true
+      parse("M&M's AND fail").eval("M&M's are awesome").should be_false
+    end
+
+    it "should accept mixed quotes inside the exact match queries" do
+      parse("seattle's best").eval("seattle's best").should be_true
+
+      parse("peets OR \"seattle's best\"").eval("peets").should be_true
+      parse("peets OR \"seattle's best\"").eval("seattle's").should be_false
+
+      parse("\"seattle's best\"").eval("seattle's best coffee").should be_true
+      parse('"seattle\'s best"').eval("seattle's best coffee").should be_true
+    end
+  end
+
   context 'delimiters' do
     it 'should default to space delimiter' do
       TextQuery.new("a").match?("a b").should be_true
@@ -287,7 +291,9 @@ describe TextQuery do
       TextQuery.new("a b").accept { |*a| a }.should == [ :implicit, [ :value, 'a' ], [ :value, 'b' ] ]
       TextQuery.new("a OR b").accept { |*a| a }.should == [ :or, [ :value, 'a' ], [ :value, 'b' ] ]
     end
+  end
 
+  context 'attributes' do
     it 'should allow query with attribute' do
       TextQuery.new("tag:b").accept { |*a| a }.should == [ :attribute, 'tag', [ :value, 'b' ] ]
       TextQuery.new("a OR tag:b").accept { |*a| a }.should == [ :or, [ :value, 'a' ], [ :attribute, 'tag', [ :value, 'b' ] ] ]
@@ -309,6 +315,23 @@ describe TextQuery do
 
     it 'should not swallow spaces in quoted strings when traversed' do
       TextQuery.new('" a "').accept { |*a| a }.should == [ :value, ' a ' ]
+    end
+  end
+
+  context 'regular expressions' do
+    it 'should allow regular expression query' do
+      TextQuery.new('regex:[[:alpha:]\s]*').accept { |*a| a }.should == [ :regexp, '[[:alpha:]\s]*' ]
+    end
+
+    it 'should allow quoted regular expression queries' do
+      TextQuery.new(%q{regex:"[[:alpha:] ]*'"}).accept { |*a| a }.should == [ :regexp, %q{[[:alpha:] ]*'} ]
+      TextQuery.new(%q{regex:'[[:alpha:] ]*"'}).accept { |*a| a }.should == [ :regexp, %q{[[:alpha:] ]*"} ]
+    end
+
+    it 'should fail on an invalid regular expression query' do
+      proc {
+        TextQuery.new('regex:[a-z').accept { |*a| a }.should
+      }.should raise_error(RegexpError)
     end
   end
 end

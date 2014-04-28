@@ -25,7 +25,7 @@ class WordMatch < Treetop::Runtime::SyntaxNode
   @@regex_case ||= {}
 
   def eval(text, opt)
-    query = RegExp.escape(text_value)
+    query = opt[:regexp] ? RegExp.new(text_value) : RegExp.escape(text_value)
     qkey  = query + opt[:delim]
 
     if not @@regex[qkey]

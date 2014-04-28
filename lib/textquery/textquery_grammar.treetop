@@ -113,22 +113,65 @@ grammar TextQueryGrammar
   end
 
   rule term
+    regexp_term
+    / attribute_term
+    / value
+  end
+
+  rule regexp_term
+    'regex' attribute_delimiter regexp_value
+      {
+        def eval(text, opt)
+          regexp_value.eval(text, opt)
+        end
+        def accept(&block)
+          regexp_value.accept(&block)
+        end
+      }
+  end
+
+  rule attribute_term
+    !('regex' attribute_delimiter)
     attribute attribute_delimiter value
-    # If you wish to restrict the allowed attributes, add a sempred here:
-    # &{|s| is_valid_attribute(s[0].text_value) }
-    {
-      def eval(text, opt)
-        value.eval(text, opt)
-      end
-      def accept(&block)
-        block.call(:attribute, attribute.text_value, value.accept(&block))
-      end
-    }
-    /
-    value
+      # If you wish to restrict the allowed attributes, add a sempred here:
+      # &{|s| is_valid_attribute(s[0].text_value) }
+      {
+        def eval(text, opt)
+          value.eval(text, opt)
+        end
+        def accept(&block)
+          block.call(:attribute, attribute.text_value, value.accept(&block))
+        end
+      }
   end
 
   rule value
+    parenthesized_value
+    / unary_value
+    / double_quoted_value
+    / single_quoted_value
+    / atomic_value
+  end
+
+  rule regexp_value
+    re:(
+      double_quoted_value
+      / single_quoted_value
+      / '' words:(![\s] .)+              # Accept any amount of non-white...
+    )
+      &{|s| Regexp.new(s[0].words.text_value); true } # ... but throw an exception unless it's a valid Regexp
+    {
+      def eval(text, opt)
+        re.words.eval(text, opt.merge({:regexp => true}))
+      end
+
+      def accept(&block)
+        block.call(:regexp, re.words.text_value)
+      end
+    }
+  end
+
+  rule parenthesized_value
     '(' space expression space ')' {
        def eval(text, opt)
          expression.eval(text, opt)
@@ -138,7 +181,9 @@ grammar TextQueryGrammar
          expression.accept(&block)
        end
     }
-    /
+  end
+
+  rule unary_value
     operator:unary space term {
       def eval(text, opt)
         operator.eval(term.eval(text, opt))
@@ -148,28 +193,35 @@ grammar TextQueryGrammar
         operator.accept(term.accept(&block), &block)
       end
     }
-    /
-    double_quote double_quote_words double_quote {
+  end
+
+  rule double_quoted_value
+    double_quote words:double_quote_words double_quote 
+    {
       def eval(text, opt)
-        double_quote_words.eval(text, opt)
+        words.eval(text, opt)
       end
 
       def accept(&block)
-        double_quote_words.accept(&block)
+        words.accept(&block)
       end
     }
-    /
-    single_quote single_quote_words single_quote {
+  end
+
+  rule single_quoted_value
+    single_quote words:single_quote_words single_quote {
       def eval(text, opt)
-        single_quote_words.eval(text, opt)
+        words.eval(text, opt)
       end
 
       def accept(&block)
-        single_quote_words.accept(&block)
+        words.accept(&block)
       end
     }
-    /
-    !(or / and) word {
+  end
+
+  rule atomic_value
+    !(or / and ) word {
       def eval(text, opt)
         word.eval(text, opt)
       end

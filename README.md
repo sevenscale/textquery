@@ -14,6 +14,7 @@ Textquery is a simple PEG grammar with support for:
 - case (in)sensitive
 - attribute tags (e.g. surname:Smith)
 - custom delimiters (default is whitespace for words, : for attributes)
+- regular expressions (e.g. regex:[a-z], regex:"[a-z ]")
 
 TextQuery in the wild: [PostRank](http://postrank.com/), [PaperTrail](https://papertrailapp.com/), and others!
 
@@ -40,8 +41,8 @@ TextQuery.new("2~a~1").match?("edaf")                     # => true
 TextQuery.new("2~a~2").match?("edaf")                     # => false
 
 TextQuery.new("a", :ignorecase => true).match?("A b cD")  # => true
-```
 
+```
 
 
 ## License
