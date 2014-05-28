@@ -80,8 +80,15 @@ grammar TextQueryGrammar
     [\s]*
   end
 
+  # A word may not contain space, or start with parenthesis, but may contain pairs of parentheses
   rule word
-    [^\s\(\)]+ <WordMatch>
+    [^\s\(\)] ( [^\s\(\)] / paren_word )* <WordMatch>
+  end
+
+  rule paren_word
+    '(' paren_word ')'
+    /
+    [^\s\(\)]+ paren_word*
   end
 
   rule single_quote

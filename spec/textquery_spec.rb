@@ -32,6 +32,15 @@ describe TextQuery do
     parse("NOTtext").eval("string of stuff").should be_false
   end
 
+  it "should allow matched parentheses after the start of a word" do
+    parse("(text)").eval("(text)").should be_false
+    parse("t(ext)").eval("t(ext)").should be_true
+    TextQuery.new("b(c)").accept { |*a| a }.should == [ :value, 'b(c)' ]
+    TextQuery.new("b(c((d)))").accept { |*a| a }.should == [ :value, 'b(c((d)))' ]
+    TextQuery.new("b (c)").accept { |*a| a }.should == [:implicit, [:value, "b"], [:value, "c"]]
+    proc { TextQuery.new("b(c") }.should raise_error
+  end
+
   it "should wrap the grammar API" do
     TextQuery.new("'to be' OR NOT 'to_be'").match?("to be").should be_true
     TextQuery.new("-test").match?("some string of text").should be_true
