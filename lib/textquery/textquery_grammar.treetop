@@ -86,7 +86,7 @@ grammar TextQueryGrammar
   end
 
   rule paren_word
-    '(' paren_word ')'
+    '(' paren_word ')'?
     /
     [^\s\(\)]+ paren_word*
   end

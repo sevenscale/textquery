@@ -38,7 +38,8 @@ describe TextQuery do
     TextQuery.new("b(c)").accept { |*a| a }.should == [ :value, 'b(c)' ]
     TextQuery.new("b(c((d)))").accept { |*a| a }.should == [ :value, 'b(c((d)))' ]
     TextQuery.new("b (c)").accept { |*a| a }.should == [:implicit, [:value, "b"], [:value, "c"]]
-    proc { TextQuery.new("b(c") }.should raise_error
+    proc { TextQuery.new("b)c") }.should raise_error
+    TextQuery.new("b(c").accept { |*a| a }.should == [ :value, 'b(c' ]
   end
 
   it "should wrap the grammar API" do
