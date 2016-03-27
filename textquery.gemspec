@@ -14,7 +14,7 @@ Gem::Specification.new do |s|
   s.rubyforge_project = "textquery"
 
   s.add_dependency "treetop"
-  s.add_development_dependency "rspec"
+  s.add_development_dependency "rspec", "< 3.0"
   s.add_development_dependency "rake"
 
   s.files         = `git ls-files`.split("\n")
