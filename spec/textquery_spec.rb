@@ -284,7 +284,7 @@ describe TextQuery do
     end
 
     it 'should allow query to be traversed' do
-      TextQuery.new("a b").accept { |*a| a }.should == [ :and, [ :value, 'a' ], [ :value, 'b' ] ]
+      TextQuery.new("a b").accept { |*a| a }.should == [ :implicit, [ :value, 'a' ], [ :value, 'b' ] ]
       TextQuery.new("a OR b").accept { |*a| a }.should == [ :or, [ :value, 'a' ], [ :value, 'b' ] ]
     end
 
@@ -292,7 +292,7 @@ describe TextQuery do
       TextQuery.new("tag:b").accept { |*a| a }.should == [ :attribute, 'tag', [ :value, 'b' ] ]
       TextQuery.new("a OR tag:b").accept { |*a| a }.should == [ :or, [ :value, 'a' ], [ :attribute, 'tag', [ :value, 'b' ] ] ]
       TextQuery.new("a OR tag:'b c'").accept { |*a| a }.should == [ :or, [ :value, 'a' ], [ :attribute, 'tag', [ :value, 'b c' ] ] ]
-      TextQuery.new("a -tag:'b c'").accept { |*a| a }.should == [ :and, [ :value, 'a' ], [ :not, [ :attribute, 'tag', [ :value, 'b c' ] ] ] ]
+      TextQuery.new("a -tag:'b c'").accept { |*a| a }.should == [ :implicit, [ :value, 'a' ], [ :not, [ :attribute, 'tag', [ :value, 'b c' ] ] ] ]
     end
 
     it 'should allow query with attribute using custom delimiter' do
