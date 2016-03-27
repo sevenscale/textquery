@@ -311,4 +311,25 @@ describe TextQuery do
       TextQuery.new('" a "').accept { |*a| a }.should == [ :value, ' a ' ]
     end
   end
+
+  context 'regex and regex-like values' do
+    it 'should handle values with only a leading or a trailing slash as literals' do
+      TextQuery.new("tag:/b b").accept { |*a| a }.should == [ :implicit, [ :attribute, 'tag', [ :value, '/b' ] ], [ :value, 'b' ] ]
+      TextQuery.new('tag:def ghi/').accept { |*a| a }.should == [ :implicit, [ :attribute, 'tag', [ :value, 'def' ] ], [ :value, 'ghi/' ] ]
+     end
+
+    it 'should treat values with both a leading and a trailing slash as a regex_value' do
+      TextQuery.new("/b/").accept { |*a| a }.should == [ :regex_value, 'b' ]
+      TextQuery.new("/b b/").accept { |*a| a }.should == [ :regex_value, 'b b' ]
+      TextQuery.new("/'b b'/").accept { |*a| a }.should == [ :regex_value, "'b b'" ]
+
+      TextQuery.new("tag:/b/").accept { |*a| a }.should == [ :attribute, 'tag', [ :regex_value, 'b' ] ]
+      TextQuery.new("tag:/b b/").accept { |*a| a }.should == [ :attribute, 'tag', [ :regex_value, 'b b' ] ]
+      TextQuery.new("tag:/'b b'/").accept { |*a| a }.should == [ :attribute, 'tag', [ :regex_value, "'b b'" ] ]
+    end
+
+    it 'should parse from the outer-most attributes' do
+      TextQuery.new("tag:\"/'b b'/\"").accept { |*a| a }.should == [ :attribute, 'tag', [ :value, "/'b b'/" ] ]
+    end
+  end
 end
