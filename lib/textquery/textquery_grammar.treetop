@@ -105,7 +105,7 @@ grammar TextQueryGrammar
   end
 
   rule regex_words
-    [^/]+ <WordMatch>
+    ('\\/' / [^/])+ <WordMatch>
   end
 
   rule alpha
