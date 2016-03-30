@@ -332,8 +332,8 @@ describe TextQuery do
       TextQuery.new("tag:\"/'b b'/\"").accept { |*a| a }.should == [ :attribute, 'tag', [ :value, "/'b b'/" ] ]
     end
 
-    it 'should ignore escaped forward slashes' do
-      TextQuery.new("tag:/'b\/b'/").accept { |*a| a }.should == [ :attribute, 'tag', [ :regex_value, "'b/b'" ] ]
+    it 'should treat escaped forward slashes as part of a regex_value' do
+      TextQuery.new("tag:/b\\/b/").accept { |*a| a }.should == [ :attribute, 'tag', [ :regex_value, "b\\/b" ] ]
     end
   end
 end

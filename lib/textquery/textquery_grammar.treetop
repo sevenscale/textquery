@@ -100,12 +100,12 @@ grammar TextQueryGrammar
     [^"]+ <WordMatch>
   end
 
-  rule unescaped_forward_slash
-    [^\\][/]
+  rule forward_slash
+    [/]
   end
 
   rule regex_words
-    ([^\\][^\/])+ <WordMatch>
+    ('\\/' / [^/])+ <WordMatch>
   end
 
   rule alpha
@@ -177,7 +177,7 @@ grammar TextQueryGrammar
       end
     }
     /
-    unescaped_forward_slash regex_words unescaped_forward_slash {
+    forward_slash regex_words forward_slash {
       def eval(text, opt)
         # not so much
         # regex_words.eval(text, opt)
